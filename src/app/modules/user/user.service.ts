@@ -24,10 +24,10 @@ async function registerUser(data: User): Promise<Omit<User, "password">> {
   return userWithoutPassword;
 }
 
-async function loginUser(
+const loginUser = async (
   email: string,
   password: string
-): Promise<{ user: Omit<User, "password">; token: string }> {
+): Promise<{ user: Omit<User, "password">; token: string }> => {
   const user = await prisma.user.findUnique({
     where: { email },
   });
@@ -47,7 +47,8 @@ async function loginUser(
 
   const { password: _, ...userWithoutPassword } = user;
   return { user: userWithoutPassword, token };
-}
+};
+
 const getAllUser = async (): Promise<Omit<User, "password">[]> => {
   const result = await prisma.user.findMany({
     select: {
@@ -55,6 +56,7 @@ const getAllUser = async (): Promise<Omit<User, "password">[]> => {
       name: true,
       email: true,
       points: true,
+      photo: true,
       createdAt: true, // Add this line
       updatedAt: true, // Add this line
     },
@@ -74,6 +76,7 @@ const getUserById = async (
       name: true,
       email: true,
       points: true,
+      photo: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -94,11 +97,41 @@ const updateUser = async (
       name: true,
       email: true,
       points: true,
+      photo: true,
       createdAt: true,
       updatedAt: true,
     },
   });
   return result;
+};
+
+export const PointService = {
+  // Function to update user points (increment or decrement)
+  updatePoints: async (userId: string, pointsChange: number) => {
+    if (!userId || pointsChange === undefined) {
+      throw new Error("Invalid input parameters");
+    }
+
+    try {
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: { points: { increment: pointsChange } }, // Increment or decrement points
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          points: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      console.error("Error updating points:", error);
+      throw new Error("Failed to update points");
+    }
+  },
 };
 
 export const UserService = {

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { UserService } from "./user.service";
+import { PointService, UserService } from "./user.service";
 import sendResponse from "../../../shared/sendResponse";
 import httpStatus from "http-status";
 import { User } from "@prisma/client";
@@ -30,21 +30,24 @@ const registerUser = async (
     }
   }
 };
-
 const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
     const { user, token } = await UserService.loginUser(email, password);
 
+    // Set the token in a cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // true in production
+      sameSite: "lax", // Adjust as needed
     });
+
+    // Send the response with user data and token
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Login successful",
-      data: user,
+      data: { user, token },
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Invalid credentials") {
@@ -103,6 +106,44 @@ const logoutUser = async (req: Request, res: Response) => {
     success: true,
     message: "Logout successful",
   });
+};
+
+export const PointController = {
+  increasePoint: async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body; // Get userId from request body
+      if (!userId) {
+        return res.status(400).json({ error: "Bad Request - Missing userId" });
+      }
+
+      const updatedUser = await PointService.updatePoints(userId, 1);
+      return res
+        .status(200)
+        .json({ message: "Point increased", user: updatedUser });
+    } catch (error) {
+      console.error("Error increasing points:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+
+  decreasePoint: async (req: Request, res: Response) => {
+    try {
+      const { userId, points } = req.body; // Get userId and points from request body
+      if (!userId || points === undefined) {
+        return res
+          .status(400)
+          .json({ error: "Bad Request - Missing parameters" });
+      }
+
+      const updatedUser = await PointService.updatePoints(userId, -points);
+      return res
+        .status(200)
+        .json({ message: "Point decreased", user: updatedUser });
+    } catch (error) {
+      console.error("Error decreasing points:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
 };
 
 export const UserController = {
