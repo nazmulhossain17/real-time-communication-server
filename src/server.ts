@@ -5,7 +5,6 @@ import cors from "cors";
 import { MessageRoutes } from "./app/modules/message/message.routes";
 import http from "http";
 import { initializeSocket } from "./socket/socket";
-import prisma from "./shared/prisma";
 
 const app: Express = express();
 const port = 3000;
@@ -22,7 +21,6 @@ app.use(
 
 app.use("/api/v1", UserRoutes);
 app.use("/message", MessageRoutes);
-app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
